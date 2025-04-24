@@ -7,11 +7,15 @@ const fs = require('fs');
 const getIngredients = async (req, res) => {
   const { search } = req.query;
   try {
-    let query = 'SELECT * FROM ingredients';
+    let query = `
+      SELECT i.*, c.name AS category_name
+      FROM ingredients i
+      LEFT JOIN categories c ON i.category_id = c.id
+    `;
     let values = [];
 
     if (search) {
-      query += ' WHERE name ILIKE $1';
+      query += ' WHERE i.name ILIKE $1';
       values.push(`%${search}%`);
     }
 
@@ -82,7 +86,7 @@ const getStockReport = async (req, res) => {
 
   try {
     const ingredientResult = await pool.query(
-      `SELECT name, unit FROM ingredients WHERE id = $1`,
+      `SELECT i.name, u.name AS unit FROM ingredients i JOIN units u ON i.unit_id = u.id WHERE i.id = $1`,
       [id]
     );
 
@@ -154,7 +158,7 @@ const getAllIngredientsReport = async (req, res) => {
   try {
     const result = await pool.query(
       `
-        SELECT i.id AS ingredient_id, i.name AS ingredient_name, i.unit,
+        SELECT i.id AS ingredient_id, i.name AS ingredient_name, u.name AS unit,
           COALESCE((
             SELECT SUM(quantity) FROM stock_in 
             WHERE ingredient_id = i.id AND date BETWEEN $1 AND $2
@@ -173,6 +177,7 @@ const getAllIngredientsReport = async (req, res) => {
             WHERE ingredient_id = i.id AND date < $1
           ), 0) AS opening_stock
         FROM ingredients i
+        JOIN units u ON i.unit_id = u.id
       `,
       [start, end]
     );
@@ -205,7 +210,7 @@ const exportStockReportCSV = async (req, res) => {
   try {
     const result = await pool.query(
       `
-        SELECT i.id AS ingredient_id, i.name AS ingredient_name, i.unit,
+        SELECT i.id AS ingredient_id, i.name AS ingredient_name, u.name AS unit,
           COALESCE((
             SELECT SUM(quantity) FROM stock_in 
             WHERE ingredient_id = i.id AND date BETWEEN $1 AND $2
@@ -224,6 +229,7 @@ const exportStockReportCSV = async (req, res) => {
             WHERE ingredient_id = i.id AND date < $1
           ), 0) AS opening_stock
         FROM ingredients i
+        JOIN units u ON i.unit_id = u.id
       `,
       [start, end]
     );
@@ -257,11 +263,11 @@ const exportStockReportCSV = async (req, res) => {
 
 // POST new ingredient
 const createIngredient = async (req, res) => {
-  const { name, unit, stock, min_stock } = req.body;
+  const { name, unit_id, category_id, stock, min_stock } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO ingredients (name, unit, stock, min_stock) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, unit, stock, min_stock]
+      'INSERT INTO ingredients (name, unit_id, category_id, stock, min_stock) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name, unit_id, category_id, stock, min_stock]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -273,11 +279,11 @@ const createIngredient = async (req, res) => {
 // PUT update ingredient
 const updateIngredient = async (req, res) => {
   const { id } = req.params;
-  const { name, unit, stock, min_stock } = req.body;
+  const { name, unit_id, category_id, stock, min_stock } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE ingredients SET name = $1, unit = $2, stock = $3, min_stock = $4 WHERE id = $5 RETURNING *',
-      [name, unit, stock, min_stock, id]
+      'UPDATE ingredients SET name = $1, unit_id = $2, category_id = $3, stock = $4, min_stock = $5 WHERE id = $6 RETURNING *',
+      [name, unit_id, category_id, stock, min_stock, id]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Ingredient not found' });
