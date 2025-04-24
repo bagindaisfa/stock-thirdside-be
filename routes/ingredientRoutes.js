@@ -8,6 +8,7 @@ const {
   getIngredientHistory,
   getStockReport,
   getAllIngredientsReport,
+  getLowStockIngredients,
   exportStockReportCSV,
   createIngredient,
   updateIngredient,
@@ -55,6 +56,14 @@ router.get(
   authenticateToken,
   authorizeRoles('admin', 'gudang'),
   exportStockReportCSV
+);
+
+// GET low stock ingredient
+router.get(
+  '/ingredients/low-stock',
+  authenticateToken,
+  authorizeRoles('admin', 'gudang'),
+  getLowStockIngredients
 );
 
 // POST new ingredient

@@ -213,6 +213,22 @@ const getAllIngredientsReport = async (req, res) => {
   }
 };
 
+// GET ingredients with low stock
+const getLowStockIngredients = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT i.id, i.name, i.stock, i.minimum_stock, u.name AS unit_name 
+         FROM ingredients i
+         LEFT JOIN units u ON i.unit_id = u.id
+         WHERE i.stock < i.minimum_stock`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Failed to fetch low stock ingredients' });
+  }
+};
+
 const exportStockReportCSV = async (req, res) => {
   const { start, end } = req.query;
 
@@ -334,6 +350,7 @@ module.exports = {
   getIngredientHistory,
   getStockReport,
   getAllIngredientsReport,
+  getLowStockIngredients,
   exportStockReportCSV,
   createIngredient,
   updateIngredient,
