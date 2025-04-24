@@ -8,10 +8,14 @@ const getIngredients = async (req, res) => {
   const { search } = req.query;
   try {
     let query = `
-      SELECT i.*, c.name AS category_name
-      FROM ingredients i
-      LEFT JOIN categories c ON i.category_id = c.id
-    `;
+        SELECT 
+          i.*, 
+          c.name AS category_name,
+          u.name AS unit_name
+        FROM ingredients i
+        LEFT JOIN categories c ON i.category_id = c.id
+        LEFT JOIN units u ON i.unit_id = u.id
+      `;
     let values = [];
 
     if (search) {
