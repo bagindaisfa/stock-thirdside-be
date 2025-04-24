@@ -4,6 +4,7 @@ const ingredientRoutes = require('./routes/ingredientRoutes');
 const stockInRoutes = require('./routes/stockInRoutes');
 const stockUsageRoutes = require('./routes/stockUsageRoutes');
 const authRoutes = require('./routes/authRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -19,6 +20,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/stock_in', stockInRoutes);
 app.use('/api/stock_usage', stockUsageRoutes);
+app.use('/api/reports', reportRoutes);
 
 app
   .listen(port, () => {
