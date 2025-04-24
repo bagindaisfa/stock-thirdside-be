@@ -1,6 +1,7 @@
 // routes/stockUsageRoutes.js
 const express = require('express');
 const router = express.Router();
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const {
   getStockUsage,
   createStockUsage,
@@ -9,15 +10,35 @@ const {
 } = require('../controllers/stockUsageController');
 
 // GET all stock_usage
-router.get('/', getStockUsage);
+router.get(
+  '/',
+  authenticateToken,
+  authorizeRoles('admin', 'gudang'),
+  getStockUsage
+);
 
 // POST new stock_usage
-router.post('/', createStockUsage);
+router.post(
+  '/',
+  authenticateToken,
+  authorizeRoles('admin', 'gudang'),
+  createStockUsage
+);
 
 // PUT update stock_usage
-router.put('/:id', updateStockUsage);
+router.put(
+  '/:id',
+  authenticateToken,
+  authorizeRoles('admin', 'gudang'),
+  updateStockUsage
+);
 
 // DELETE stock_usage
-router.delete('/:id', deleteStockUsage);
+router.delete(
+  '/:id',
+  authenticateToken,
+  authorizeRoles('admin', 'gudang'),
+  deleteStockUsage
+);
 
 module.exports = router;

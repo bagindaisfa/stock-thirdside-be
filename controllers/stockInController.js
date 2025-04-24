@@ -14,11 +14,12 @@ const getStockIn = async (req, res) => {
 
 // POST new stock_in
 const createStockIn = async (req, res) => {
-  const { ingredient_id, quantity, date } = req.body;
+  const { ingredient_id, quantity, date, unit_price } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO stock_in (ingredient_id, quantity, date) VALUES ($1, $2, $3) RETURNING *',
-      [ingredient_id, quantity, date]
+      `INSERT INTO stock_in (ingredient_id, quantity, date, unit_price)
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+      [ingredient_id, quantity, date, unit_price]
     );
 
     // Update stock di ingredients
@@ -37,7 +38,7 @@ const createStockIn = async (req, res) => {
 // PUT update stock_in
 const updateStockIn = async (req, res) => {
   const { id } = req.params;
-  const { ingredient_id, quantity, date } = req.body;
+  const { ingredient_id, quantity, date, unit_price } = req.body;
   try {
     // Ambil data lama untuk hitung selisih
     const oldData = await pool.query('SELECT * FROM stock_in WHERE id = $1', [
@@ -52,8 +53,9 @@ const updateStockIn = async (req, res) => {
 
     // Update data di stock_in
     const result = await pool.query(
-      'UPDATE stock_in SET ingredient_id = $1, quantity = $2, date = $3 WHERE id = $4 RETURNING *',
-      [ingredient_id, quantity, date, id]
+      `UPDATE stock_in SET ingredient_id = $1, quantity = $2, date = $3, unit_price = $4
+         WHERE id = $5 RETURNING *`,
+      [ingredient_id, quantity, date, unit_price, id]
     );
 
     // Update stok sesuai selisih
