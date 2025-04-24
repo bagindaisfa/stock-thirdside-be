@@ -14,35 +14,59 @@ const getStockUsage = async (req, res) => {
 
 // POST new stock_usage
 const createStockUsage = async (req, res) => {
-  const { ingredient_id, quantity, date } = req.body;
+  const { ingredient_id, quantity, date, note } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO stock_usage (ingredient_id, quantity, date) VALUES ($1, $2, $3) RETURNING *',
-      [ingredient_id, quantity, date]
+      'INSERT INTO stock_usage (ingredient_id, quantity, date, note) VALUES ($1, $2, $3, $4) RETURNING *',
+      [ingredient_id, quantity, date, note]
     );
+
+    // Kurangi stok di ingredients
+    await pool.query(
+      'UPDATE ingredients SET stock = stock - $1 WHERE id = $2',
+      [quantity, ingredient_id]
+    );
+
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
 // PUT update stock_usage
 const updateStockUsage = async (req, res) => {
   const { id } = req.params;
-  const { ingredient_id, quantity, date } = req.body;
+  const { ingredient_id, quantity, date, note } = req.body;
   try {
-    const result = await pool.query(
-      'UPDATE stock_usage SET ingredient_id = $1, quantity = $2, date = $3 WHERE id = $4 RETURNING *',
-      [ingredient_id, quantity, date, id]
+    // Ambil data lama untuk hitung selisih
+    const oldData = await pool.query(
+      'SELECT * FROM stock_usage WHERE id = $1',
+      [id]
     );
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'Stock Usage not found' });
+    if (oldData.rows.length === 0) {
+      return res.status(404).json({ error: 'Stock usage not found' });
     }
-    res.status(200).json(result.rows[0]);
+
+    const oldQty = oldData.rows[0].quantity;
+    const delta = quantity - oldQty;
+
+    // Update data di stock_usage
+    const result = await pool.query(
+      'UPDATE stock_usage SET ingredient_id = $1, quantity = $2, date = $3, note = $4 WHERE id = $5 RETURNING *',
+      [ingredient_id, quantity, date, note, id]
+    );
+
+    // Update stok sesuai selisih (karena usage, maka dikurangkan)
+    await pool.query(
+      'UPDATE ingredients SET stock = stock - $1 WHERE id = $2',
+      [delta, ingredient_id]
+    );
+
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -50,17 +74,26 @@ const updateStockUsage = async (req, res) => {
 const deleteStockUsage = async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query(
-      'DELETE FROM stock_usage WHERE id = $1 RETURNING *',
-      [id]
-    );
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'Stock Usage not found' });
+    const usage = await pool.query('SELECT * FROM stock_usage WHERE id = $1', [
+      id,
+    ]);
+    if (usage.rows.length === 0) {
+      return res.status(404).json({ error: 'Stock usage not found' });
     }
-    res.status(200).json({ message: 'Stock Usage deleted successfully' });
+    const { ingredient_id, quantity } = usage.rows[0];
+
+    await pool.query('DELETE FROM stock_usage WHERE id = $1', [id]);
+
+    // Kembalikan stok
+    await pool.query(
+      'UPDATE ingredients SET stock = stock + $1 WHERE id = $2',
+      [quantity, ingredient_id]
+    );
+
+    res.json({ message: 'Stock usage deleted' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).json({ error: 'Server error' });
   }
 };
 

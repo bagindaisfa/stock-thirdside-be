@@ -23,6 +23,7 @@ CREATE TABLE stock_in (
     id SERIAL PRIMARY KEY,
     ingredient_id INTEGER REFERENCES ingredients(id) ON DELETE CASCADE,
     quantity NUMERIC NOT NULL,
+    unit_price NUMERIC(12,2) NOT NULL,
     date DATE DEFAULT CURRENT_DATE
 );
 
