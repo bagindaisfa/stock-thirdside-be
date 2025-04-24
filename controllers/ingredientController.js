@@ -162,7 +162,10 @@ const getAllIngredientsReport = async (req, res) => {
   try {
     const result = await pool.query(
       `
-        SELECT i.id AS ingredient_id, i.name AS ingredient_name, u.name AS unit,
+        SELECT i.id AS ingredient_id, 
+                i.name AS ingredient_name, 
+                u.name AS unit,
+                c.name AS category,
           COALESCE((
             SELECT SUM(quantity) FROM stock_in 
             WHERE ingredient_id = i.id AND date BETWEEN $1 AND $2
@@ -182,6 +185,7 @@ const getAllIngredientsReport = async (req, res) => {
           ), 0) AS opening_stock
         FROM ingredients i
         JOIN units u ON i.unit_id = u.id
+        LEFT JOIN categories c ON i.category_id = c.id
       `,
       [start, end]
     );
@@ -192,6 +196,7 @@ const getAllIngredientsReport = async (req, res) => {
         ingredient_id: row.ingredient_id,
         ingredient_name: row.ingredient_name,
         unit: row.unit,
+        category: row.category,
         start_date: start,
         end_date: end,
         opening_stock: row.opening_stock,
@@ -214,7 +219,11 @@ const exportStockReportCSV = async (req, res) => {
   try {
     const result = await pool.query(
       `
-        SELECT i.id AS ingredient_id, i.name AS ingredient_name, u.name AS unit,
+        SELECT 
+            i.id AS ingredient_id, 
+            i.name AS ingredient_name, 
+            u.name AS unit,
+            c.name AS category,
           COALESCE((
             SELECT SUM(quantity) FROM stock_in 
             WHERE ingredient_id = i.id AND date BETWEEN $1 AND $2
@@ -234,6 +243,7 @@ const exportStockReportCSV = async (req, res) => {
           ), 0) AS opening_stock
         FROM ingredients i
         JOIN units u ON i.unit_id = u.id
+        JOIN categories c ON i.category_id = c.id
       `,
       [start, end]
     );
@@ -244,6 +254,7 @@ const exportStockReportCSV = async (req, res) => {
         ingredient_id: row.ingredient_id,
         ingredient_name: row.ingredient_name,
         unit: row.unit,
+        category: row.category,
         start_date: start,
         end_date: end,
         opening_stock: row.opening_stock,
